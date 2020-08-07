@@ -11,15 +11,14 @@
 <body>
     <header>
       <details open>
-        <summary>Stereo Video Player</summary>
+        <summary>360 Photos</summary>
         <p>
-          This sample demonstrates how to play a stereo 3D video.
+          This sample demonstrates displaying a 360 degree equirectangular stereo
+          photo. It intentionally suppresses view position to ensure that the user
+          cannot move out of the photo sphere.
           <a class="back" href="./">Back</a>
-          <br/>
-          <hr/>
-          Autoplay when VR starts: <input id='autoplayVideo' type='checkbox'/>
         </p>
-      </summary>
+      </details>
     </header>
     <script type="module">
       import {WebXRButton} from './js/util/webxr-button.js';
