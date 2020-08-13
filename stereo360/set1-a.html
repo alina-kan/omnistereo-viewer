@@ -20,6 +20,10 @@
         </p>
       </details>
     </header>
+    <div id="gui" style="position: relative; z-index: 1; width: 15rem; background-color: #FFFFFF;">
+        <label>Test</label>
+        <input type="range" min="0" max="45" step="5" />
+    </div>
     <script type="module">
       import {WebXRButton} from './js/util/webxr-button.js';
       import {Scene, WebXRView} from './js/render/scenes/scene.js';
@@ -40,15 +44,28 @@
       let xrButton = null;
       let xrImmersiveRefSpace = null;
       let inlineViewerHelper = null;
+      let sessionOptions = {
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: {root: document.getElementById('gui')}
+      }
 
       // WebGL scene globals.
       let gl = null;
       let renderer = null;
       let scene = new Scene();
-      scene.addNode(new SkyboxNode({
-        url: 'images/pointcloud_5M_a.jpg',
-        displayMode: 'stereoTopBottom'
-      }));
+      let skyboxes = [
+        new SkyboxNode({
+            url: 'images/pointcloud_5M_a.jpg',
+            displayMode: 'stereoTopBottom',
+            rotationY: 0.5 * Math.PI
+        }),
+        new SkyboxNode({
+            url: 'images/obj_3d_scene_a.jpg',
+            displayMode: 'stereoTopBottom',
+            rotationY: -0.5 * Math.PI
+        })
+      ]
+      scene.addNode(skyboxes[0]);
       scene.enableStats(false);
 
       function initXR() {
@@ -65,6 +82,14 @@
 
           navigator.xr.requestSession('inline').then(onSessionStarted);
         }
+
+        document.addEventListener('keydown', onKeyDown, false);
+      }
+
+      function onKeyDown() {
+        console.log("HERE");
+        scene.clearNodes();
+        scene.addNode(skyboxes[1]);
       }
 
       function initGL() {
@@ -74,6 +99,7 @@
         gl = createWebGLContext({
           xrCompatible: true
         });
+        //gl.canvas.style.zIndex = 1;
         document.body.appendChild(gl.canvas);
 
         function onResize() {
@@ -88,7 +114,8 @@
       }
 
       function onRequestSession() {
-        return navigator.xr.requestSession('immersive-vr').then((session) => {
+        return navigator.xr.requestSession('immersive-vr', sessionOptions).then((session) => {
+            console.log(session);
           xrButton.setSession(session);
           session.isImmersive = true;
           onSessionStarted(session);
@@ -96,6 +123,7 @@
       }
 
       function onSessionStarted(session) {
+        console.log(session);
         session.addEventListener('end', onSessionEnded);
 
         initGL();
