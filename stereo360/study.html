@@ -46,11 +46,11 @@
             // add invisible sphere for pointer intersection
             //var light1 = new BABYLON.PointLight("light1", new BABYLON.Vector3(1.25, 1.25, 0), scene);
 
-            let sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 3.0, segments: 32}, scene);
+            let sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 4.0, segments: 32}, scene);
             sphere.position = new BABYLON.Vector3(0.0, 0.0, 0.0);
             sphere.material = new BABYLON.StandardMaterial('sphereMaterial', scene);
             sphere.material.backFaceCulling = false;
-            sphere.material.alpha = 0.4;
+            sphere.material.alpha = 0.0;
 
             // web xr
             const environment = scene.createDefaultEnvironment();
