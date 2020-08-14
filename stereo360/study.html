@@ -12,9 +12,10 @@
     <script type="application/javascript">
         let xr_control;
         let scene;
-        let dome;
+        let domes = [];
         let gui;
         let image_label;
+        let stereo_checkbox;
         let next_img_button;
         let ods_image_idx = 1;
         let ods_images = [
@@ -47,17 +48,24 @@
             camera.znear = 0.1;
             camera.zfar = 1000.0;
 
-            // add photo dome (equirectangular panorama)
-            dome = new BABYLON.PhotoDome(
-                'ods_dome',
-                ods_images[ods_image_idx],
-                {
-                    resolution: 32,
-                    size: 500
-                },
-                scene
-            );
-            dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+            // add photo domes (equirectangular panoramas)
+            let i;
+            for (i = 0; i < ods_images.length; i++) {
+                let dome = new BABYLON.PhotoDome(
+                    'ods_dome',
+                    ods_images[i],
+                    {
+                        resolution: 32,
+                        size: 500
+                    },
+                    scene
+                );
+                dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+                if (i != ods_image_idx) {
+                    dome.setEnabled(false);
+                }
+                domes.push(dome);
+            }
 
             // add invisible sphere for pointer intersection
             let sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 4.0, segments: 32}, scene);
@@ -102,7 +110,7 @@
             image_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
             image_label.fontSize = '48px';
             stereo_checkbox_panel.addControl(image_label);
-            let stereo_checkbox = new BABYLON.GUI.Checkbox();
+            stereo_checkbox = new BABYLON.GUI.Checkbox();
             stereo_checkbox.width = '50px';
             stereo_checkbox.height = '50px';
             stereo_checkbox.isChecked = true;
@@ -179,38 +187,22 @@
         }
 
         function setStereo(value) {
+            let prev_idx = value ? 0 : ods_image_idx;
             let idx = value ? ods_image_idx : 0;
 
-            dome.dispose();
-
-            dome = new BABYLON.PhotoDome(
-                'ods_dome',
-                ods_images[idx],
-                {
-                    resolution: 32,
-                    size: 500
-                },
-                scene
-            );
-            dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+            domes[prev_idx].setEnabled(false);
+            domes[idx].setEnabled(true);
         }
 
         function nextImage() {
-            dome.dispose();
+            domes[0].setEnabled(false);
+            domes[ods_image_idx].setEnabled(false);
+            stereo_checkbox.isChecked = true;
 
             ods_image_idx++;
             image_label.text = 'Image ID: ' + ods_image_idx;
 
-            dome = new BABYLON.PhotoDome(
-                'ods_dome',
-                ods_images[ods_image_idx],
-                {
-                    resolution: 32,
-                    size: 500
-                },
-                scene
-            );
-            dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+            domes[ods_image_idx].setEnabled(true);
 
             if ((ods_image_idx + 1) >= ods_images.length) {
                 next_img_button.isEnabled = false;
