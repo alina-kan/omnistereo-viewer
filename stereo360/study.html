@@ -11,7 +11,19 @@
     <script type="application/javascript" src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
     <script type="application/javascript">
         let xr_control;
+        let scene;
+        let dome;
         let gui;
+        let image_label;
+        let next_img_button;
+        let ods_image_idx = 1;
+        let ods_images = [
+            './images/pointcloud_5M_mono.jpg',
+            './images/pointcloud_5M_traditional.jpg',
+            './images/pointcloud_5M_linear_0-15.jpg',
+            './images/pointcloud_5M_linear_0-30.jpg',
+            './images/pointcloud_5M_linear_0-45.jpg'
+        ];
 
         function init() {
             // get the canvas element
@@ -20,12 +32,12 @@
             let engine = new BABYLON.Engine(canvas, true);
 
             // create scene
-            let scene = createScene(canvas, engine);
+            createScene(canvas, engine);
         }
 
         function createScene(canvas, engine) {
             // creates a basic Babylon Scene object (non-mesh)
-            let scene = new BABYLON.Scene(engine);
+            scene = new BABYLON.Scene(engine);
 
             // add a camera to the scene and attach it to the canvas
             let camera = new BABYLON.ArcRotateCamera('camera', -Math.PI / 2,  Math.PI / 2, 0.001, 
@@ -36,9 +48,9 @@
             camera.zfar = 1000.0;
 
             // add photo dome (equirectangular panorama)
-            var dome = new BABYLON.PhotoDome(
+            dome = new BABYLON.PhotoDome(
                 'ods_dome',
-                './images/obj_3d_scene_a.jpg',
+                ods_images[ods_image_idx],
                 {
                     resolution: 32,
                     size: 500
@@ -83,8 +95,8 @@
             stereo_checkbox_panel.isVertical = false;
             stereo_checkbox_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
             stereo_checkbox_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-            let image_label = new BABYLON.GUI.TextBlock();
-            image_label.text = 'Image ID: 1';
+            image_label = new BABYLON.GUI.TextBlock();
+            image_label.text = 'Image ID: ' + ods_image_idx;
             image_label.width = '750px';
             image_label.color = '#000000';
             image_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
@@ -113,7 +125,7 @@
             button_panel.isVertical = false;
             button_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
             button_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-            let next_img_button = BABYLON.GUI.Button.CreateSimpleButton('next_img', 'Next Image');
+            next_img_button = BABYLON.GUI.Button.CreateSimpleButton('next_img', 'Next Image');
             next_img_button.width = '300px';
             next_img_button.height = '72px';
             next_img_button.color = '#FFFFFF';
@@ -145,14 +157,14 @@
                 xr_control = xr_helper;
                 xr_control.teleportation.detach();
 
-                startRenderLoop(engine, scene);
+                startRenderLoop(engine);
             })
             .catch((err) => {
                 console.log(err);
             });
         }
 
-        function startRenderLoop(engine, scene) {
+        function startRenderLoop(engine) {
             // register a render loop to repeatedly render the scene
             engine.runRenderLoop(() => {
                 gui.position = scene.activeCamera.position.add(new BABYLON.Vector3(-0.7, 0.15, -1.0))
@@ -167,11 +179,43 @@
         }
 
         function setStereo(value) {
-            console.log("set stereo", value);
+            let idx = value ? ods_image_idx : 0;
+
+            dome.dispose();
+
+            dome = new BABYLON.PhotoDome(
+                'ods_dome',
+                ods_images[idx],
+                {
+                    resolution: 32,
+                    size: 500
+                },
+                scene
+            );
+            dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
         }
 
         function nextImage() {
+            dome.dispose();
 
+            ods_image_idx++;
+            image_label.text = 'Image ID: ' + ods_image_idx;
+
+            dome = new BABYLON.PhotoDome(
+                'ods_dome',
+                ods_images[ods_image_idx],
+                {
+                    resolution: 32,
+                    size: 500
+                },
+                scene
+            );
+            dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+
+            if ((ods_image_idx + 1) >= ods_images.length) {
+                next_img_button.isEnabled = false;
+                next_img_button.background = '#666666';
+            }
         }
 
         function exitVr() {
@@ -184,7 +228,7 @@
 <body onload="init()">
     <div id="instructions">
         <h1>Instructions</h1>
-        <p>Click on the VR Headset icon in the bottom left to enter immersive mode. If this icon is not shown, your device does not support virtual reality for this application.</p>
+        <p>Click on the VR Headset icon in the bottom-right to enter immersive mode. If this icon is not shown, your device does not support virtual reality for this application.</p>
     </div>
     <canvas id="render" touch-action="none"></canvas>
 </body>
