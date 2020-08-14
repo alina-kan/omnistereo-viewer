@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <title>Omnidirectional Stereo Image Viewer</title>
+    <link rel="stylesheet" href="css/style.css"/>
+    <script type="application/javascript" src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script type="application/javascript">
+        function init() {
+            // get the canvas element
+            let canvas = document.getElementById('render');
+            // generate the Babylon 3D engine
+            let engine = new BABYLON.Engine(canvas, true);
+
+            // create scene
+            let scene = createScene(canvas, engine);
+        }
+
+        function createScene(canvas, engine) {
+            // creates a basic Babylon Scene object (non-mesh)
+            let scene = new BABYLON.Scene(engine);
+
+            // add a camera to the scene and attach it to the canvas
+            let camera = new BABYLON.ArcRotateCamera('Camera', -Math.PI / 2,  Math.PI / 2, 5, 
+                                                     BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            camera.inputs.attached.mousewheel.detachControl(canvas);
+
+            // add photo dome (equirectangular panorama)
+            var dome = new BABYLON.PhotoDome(
+                "ods_dome",
+                "./images/obj_3d_scene_a.jpg",
+                {
+                    resolution: 32,
+                    size: 500
+                },
+                scene
+            );
+            dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+
+            // web xr
+            const environment = scene.createDefaultEnvironment();
+            const xrHelper = scene.createDefaultXRExperienceAsync({
+                floorMeshes: [environment.ground]
+            });
+
+            xrHelper.then(() => {
+                startRenderLoop(engine, scene);
+            }).catch((err) => {
+                console.log(err);
+            });
+        }
+
+        function startRenderLoop(engine, scene) {
+            // register a render loop to repeatedly render the scene
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+
+            // watch for browser/canvas resize events
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+        }
+    </script>
+</head>
+<body onload="init()">
+    <div id="instructions">
+        <h1>Instructions</h1>
+        <p>Instructions go here</p>
+    </div>
+    <canvas id="render" touch-action="none"></canvas>
+</body>
+</html>
