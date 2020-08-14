@@ -11,6 +11,7 @@
     <script type="application/javascript" src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
     <script type="application/javascript">
         let xr_control;
+        let gui;
 
         function init() {
             // get the canvas element
@@ -57,10 +58,10 @@
             const environment = scene.createDefaultEnvironment();
 
             // add GUI
-            let plane = BABYLON.MeshBuilder.CreatePlane('plane', {width: 0.5, height: 0.375}, scene);
-            plane.position = new BABYLON.Vector3(-0.7, 0.15, -1.0)
-            plane.lookAt(plane.position.multiply(new BABYLON.Vector3(2, 2, 2)));
-            let advanced_texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
+            gui = BABYLON.MeshBuilder.CreatePlane('plane', {width: 0.5, height: 0.375}, scene);
+            gui.position = new BABYLON.Vector3(-0.7, 0.15, -1.0)
+            gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)));
+            let advanced_texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(gui);
             let panel = new BABYLON.GUI.StackPanel();
             panel.width = '1000px';
             panel.background = 'rgba(255, 255, 255, 0.6)';   
@@ -124,6 +125,8 @@
         function startRenderLoop(engine, scene) {
             // register a render loop to repeatedly render the scene
             engine.runRenderLoop(() => {
+                gui.position = scene.activeCamera.position.add(new BABYLON.Vector3(-0.7, 0.15, -1.0))
+                gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)).subtract(scene.activeCamera.position));
                 scene.render();
             });
 
