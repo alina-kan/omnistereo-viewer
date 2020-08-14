@@ -24,10 +24,12 @@
             let scene = new BABYLON.Scene(engine);
 
             // add a camera to the scene and attach it to the canvas
-            let camera = new BABYLON.ArcRotateCamera('Camera', -Math.PI / 2,  Math.PI / 2, 5, 
+            let camera = new BABYLON.ArcRotateCamera('Camera', -Math.PI / 2,  Math.PI / 2, 0.001, 
                                                      BABYLON.Vector3.Zero(), scene);
             camera.attachControl(canvas, true);
             camera.inputs.attached.mousewheel.detachControl(canvas);
+            camera.znear = 0.1;
+            camera.zfar = 1000.0;
 
             // add photo dome (equirectangular panorama)
             var dome = new BABYLON.PhotoDome(
@@ -41,13 +43,25 @@
             );
             dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
 
+            // add invisible sphere for pointer intersection
+            //var light1 = new BABYLON.PointLight("light1", new BABYLON.Vector3(1.25, 1.25, 0), scene);
+
+            let sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 3.0, segments: 32}, scene);
+            sphere.position = new BABYLON.Vector3(0.0, 0.0, 0.0);
+            sphere.material = new BABYLON.StandardMaterial('sphereMaterial', scene);
+            sphere.material.backFaceCulling = false;
+            sphere.material.alpha = 0.4;
+
             // web xr
             const environment = scene.createDefaultEnvironment();
-            const xrHelper = scene.createDefaultXRExperienceAsync({
+            const xr_promise = scene.createDefaultXRExperienceAsync({
                 floorMeshes: [environment.ground]
             });
 
-            xrHelper.then(() => {
+            xr_promise.then((xr_helper) => {
+                xr_helper.teleportation.detach();
+                console.log(camera.position);
+
                 startRenderLoop(engine, scene);
             }).catch((err) => {
                 console.log(err);
