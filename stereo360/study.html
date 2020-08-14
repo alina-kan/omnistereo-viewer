@@ -10,6 +10,8 @@
     <script type="application/javascript" src="https://cdn.babylonjs.com/babylon.js"></script>
     <script type="application/javascript" src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
     <script type="application/javascript">
+        let xr_control;
+
         function init() {
             // get the canvas element
             let canvas = document.getElementById('render');
@@ -25,7 +27,7 @@
             let scene = new BABYLON.Scene(engine);
 
             // add a camera to the scene and attach it to the canvas
-            let camera = new BABYLON.ArcRotateCamera('Camera', -Math.PI / 2,  Math.PI / 2, 0.001, 
+            let camera = new BABYLON.ArcRotateCamera('camera', -Math.PI / 2,  Math.PI / 2, 0.001, 
                                                      BABYLON.Vector3.Zero(), scene);
             camera.attachControl(canvas, true);
             camera.inputs.attached.mousewheel.detachControl(canvas);
@@ -34,8 +36,8 @@
 
             // add photo dome (equirectangular panorama)
             var dome = new BABYLON.PhotoDome(
-                "ods_dome",
-                "./images/obj_3d_scene_a.jpg",
+                'ods_dome',
+                './images/obj_3d_scene_a.jpg',
                 {
                     resolution: 32,
                     size: 500
@@ -60,53 +62,61 @@
             plane.lookAt(plane.position.multiply(new BABYLON.Vector3(2, 2, 2)));
             let advanced_texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
             let panel = new BABYLON.GUI.StackPanel();
-            panel.width = "1000px";
-            panel.background = "rgba(255, 255, 255, 0.6)";   
+            panel.width = '1000px';
+            panel.background = 'rgba(255, 255, 255, 0.6)';   
             advanced_texture.addControl(panel);
             // header
             let header = new BABYLON.GUI.TextBlock();
-            header.text = "ODS Image Controls";
-            header.height = "132px";
-            header.width = "1000px";
-            header.color = "#000000";
+            header.text = 'ODS Image Controls';
+            header.height = '132px';
+            header.width = '1000px';
+            header.color = '#000000';
             header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-            header.fontSize = "96px";
+            header.fontSize = '96px';
             panel.addControl(header);
             // stereo checkbox
             let stereo_checkbox_panel = new BABYLON.GUI.StackPanel();
-            stereo_checkbox_panel.width = "960px";
-            stereo_checkbox_panel.height = "72px";
+            stereo_checkbox_panel.width = '960px';
+            stereo_checkbox_panel.height = '72px';
             stereo_checkbox_panel.isVertical = false;
             stereo_checkbox_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
             stereo_checkbox_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
             let stereo_checkbox = new BABYLON.GUI.Checkbox();
-            stereo_checkbox.width = "50px";
-            stereo_checkbox.height = "50px";
+            stereo_checkbox.width = '50px';
+            stereo_checkbox.height = '50px';
             stereo_checkbox.isChecked = true;
             stereo_checkbox.checkSizeRatio = 0.7;
-            stereo_checkbox.color = "#28923D";
+            stereo_checkbox.color = '#28923D';
             stereo_checkbox.onIsCheckedChangedObservable.add(setStereo);
             stereo_checkbox_panel.addControl(stereo_checkbox);
             let stereo_checkbox_label = new BABYLON.GUI.TextBlock();
-            stereo_checkbox_label.text = " Stereo";
-            stereo_checkbox_label.width = "300px";
-            stereo_checkbox_label.color = "#000000";
+            stereo_checkbox_label.text = ' Stereo';
+            stereo_checkbox_label.width = '300px';
+            stereo_checkbox_label.color = '#000000';
             stereo_checkbox_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-            stereo_checkbox_label.fontSize = "48px";
+            stereo_checkbox_label.fontSize = '48px';
             stereo_checkbox_panel.addControl(stereo_checkbox_label);
             panel.addControl(stereo_checkbox_panel);
+            // leave VR button
+            let leave_vr_button = BABYLON.GUI.Button.CreateSimpleButton('leave_vr', 'Exit VR');
+            leave_vr_button.width = '300px';
+            leave_vr_button.height = '72px';
+            leave_vr_button.color = '#FFFFFF';
+            leave_vr_button.background = '#B81204';
+            leave_vr_button.fontSize = '48px';
+            leave_vr_button.onPointerClickObservable.add(exitVr);
+            panel.addControl(leave_vr_button);
 
-            // web xr
-            const xr_promise = scene.createDefaultXRExperienceAsync({
-                floorMeshes: [environment.ground]
-            });
 
-            xr_promise.then((xr_helper) => {
-                xr_helper.teleportation.detach();
-                console.log(camera.position);
+            // WebXR
+            scene.createDefaultXRExperienceAsync({floorMeshes: [environment.ground]})
+            .then((xr_helper) => {
+                xr_control = xr_helper;
+                xr_control.teleportation.detach();
 
                 startRenderLoop(engine, scene);
-            }).catch((err) => {
+            })
+            .catch((err) => {
                 console.log(err);
             });
         }
@@ -125,6 +135,12 @@
 
         function setStereo(value) {
             console.log("set stereo", value);
+        }
+
+        function exitVr() {
+            xr_control.baseExperience.exitXRAsync().then(() => {
+                // nothing
+            });
         }
     </script>
 </head>
