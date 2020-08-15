@@ -13,6 +13,7 @@
         let xr_control;
         let scene;
         let domes = [];
+        let sphere;
         let gui;
         let image_label;
         let stereo_checkbox;
@@ -21,9 +22,10 @@
         let ods_images = [
             './images/pointcloud_5M_mono.jpg',
             './images/pointcloud_5M_traditional.jpg',
-            './images/pointcloud_5M_linear_0-15.jpg',
-            './images/pointcloud_5M_linear_0-30.jpg',
-            './images/pointcloud_5M_linear_0-45.jpg'
+            './images/pointcloud_5M_linear_0-22.5.jpg',
+            './images/pointcloud_5M_linear_0-45.jpg',
+            './images/pointcloud_5M_linear_0-67.5.jpg',
+            './images/pointcloud_5M_linear_0-90.jpg'
         ];
 
         function init() {
@@ -68,7 +70,7 @@
             }
 
             // add invisible sphere for pointer intersection
-            let sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 4.0, segments: 32}, scene);
+            sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 4.0, segments: 32}, scene);
             sphere.position = new BABYLON.Vector3(0.0, 0.0, 0.0);
             sphere.material = new BABYLON.StandardMaterial('sphereMaterial', scene);
             sphere.material.backFaceCulling = false;
@@ -175,6 +177,7 @@
         function startRenderLoop(engine) {
             // register a render loop to repeatedly render the scene
             engine.runRenderLoop(() => {
+                sphere.position = scene.activeCamera.position;
                 gui.position = scene.activeCamera.position.add(new BABYLON.Vector3(-0.7, 0.15, -1.0))
                 gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)).subtract(scene.activeCamera.position));
                 scene.render();
