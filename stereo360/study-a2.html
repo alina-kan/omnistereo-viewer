@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <title>Omnidirectional Stereo Image Viewer</title>
+    <link rel="stylesheet" href="css/style.css"/>
+    <script type="application/javascript" src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script type="application/javascript" src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script type="application/javascript">
+        let xr_control;
+        let scene;
+        let domes_linear = [];
+        let domes_cubic = [];
+        let sphere;
+        let gui;
+        let pole_merge_linear_slider_label;
+        let pole_merge_cubic_slider_label;
+        let selected_linear = true;
+        let ods_linear_idx = 0;
+        let ods_cubic_idx = 0;
+        let ods_linear = [
+            './images/pointcloud_5M_traditional.jpg',
+            './images/pointcloud_5M_linear_0-15.jpg',
+            './images/pointcloud_5M_linear_0-30.jpg',
+            './images/pointcloud_5M_linear_0-45.jpg',
+            './images/pointcloud_5M_linear_0-60.jpg',
+            './images/pointcloud_5M_linear_0-75.jpg',
+            './images/pointcloud_5M_linear_0-90.jpg'
+        ];
+        let ods_cubic = [
+            './images/pointcloud_5M_traditional.jpg',
+            './images/pointcloud_5M_cubic_0-15.jpg',
+            './images/pointcloud_5M_cubic_0-30.jpg',
+            './images/pointcloud_5M_cubic_0-45.jpg',
+            './images/pointcloud_5M_cubic_0-60.jpg',
+            './images/pointcloud_5M_cubic_0-75.jpg',
+            './images/pointcloud_5M_cubic_0-90.jpg'
+        ]
+
+        function init() {
+            // get the canvas element
+            let canvas = document.getElementById('render');
+            // generate the Babylon 3D engine
+            let engine = new BABYLON.Engine(canvas, true);
+
+            // create scene
+            createScene(canvas, engine);
+        }
+
+        function createScene(canvas, engine) {
+            // creates a basic Babylon Scene object (non-mesh)
+            scene = new BABYLON.Scene(engine);
+
+            // add a camera to the scene and attach it to the canvas
+            let camera = new BABYLON.ArcRotateCamera('camera', -Math.PI / 2,  Math.PI / 2, 0.001, 
+                                                     BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            camera.inputs.attached.mousewheel.detachControl(canvas);
+            camera.znear = 0.1;
+            camera.zfar = 1000.0;
+
+            // add photo domes (equirectangular panoramas)
+            let i;
+            for (i = 0; i < ods_linear.length; i++) {
+                let dome = new BABYLON.PhotoDome(
+                    'ods_dome',
+                    ods_linear[i],
+                    {
+                        resolution: 32,
+                        size: 500
+                    },
+                    scene
+                );
+                dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+                if (i != 0) {
+                    dome.setEnabled(false);
+                }
+                domes_linear.push(dome);
+            }
+            for (i = 0; i < ods_cubic.length; i++) {
+                let dome = new BABYLON.PhotoDome(
+                    'ods_dome',
+                    ods_cubic[i],
+                    {
+                        resolution: 32,
+                        size: 500
+                    },
+                    scene
+                );
+                dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+                dome.setEnabled(false);
+                domes_cubic.push(dome);
+            }
+
+            // add invisible sphere for pointer intersection
+            sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 4.0, segments: 32}, scene);
+            sphere.position = new BABYLON.Vector3(0.0, 0.0, 0.0);
+            sphere.material = new BABYLON.StandardMaterial('sphereMaterial', scene);
+            sphere.material.backFaceCulling = false;
+            sphere.material.alpha = 0.0;
+
+            // default environment
+            const environment = scene.createDefaultEnvironment();
+
+            // add GUI
+            gui = BABYLON.MeshBuilder.CreatePlane('plane', {width: 0.75, height: 0.465}, scene);
+            gui.position = new BABYLON.Vector3(-0.7, -0.15, -1.0)
+            gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)));
+            let advanced_texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(gui, 1024, 635);
+            let panel = new BABYLON.GUI.StackPanel();
+            panel.width = '1000px';
+            panel.height = '620px';
+            panel.background = 'rgba(255, 255, 255, 0.6)';   
+            advanced_texture.addControl(panel);
+            // header
+            let header = new BABYLON.GUI.TextBlock();
+            header.text = 'ODS Image Controls';
+            header.height = '132px';
+            header.width = '1000px';
+            header.color = '#000000';
+            header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            header.fontSize = '96px';
+            panel.addControl(header);
+            // pole merge (linear) radio button
+            let pole_merge_linear_panel = new BABYLON.GUI.StackPanel();
+            pole_merge_linear_panel.width = '960px';
+            pole_merge_linear_panel.height = '96px';
+            pole_merge_linear_panel.isVertical = false;
+            pole_merge_linear_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            pole_merge_linear_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            let pole_merge_linear_radio = new BABYLON.GUI.RadioButton();
+            pole_merge_linear_radio.width = '50px';
+            pole_merge_linear_radio.height = '50px';
+            pole_merge_linear_radio.isChecked = true;
+            pole_merge_linear_radio.checkSizeRatio = 0.7;
+            pole_merge_linear_radio.group = 'pole_merge_type';
+            pole_merge_linear_radio.color = '#28923D';
+            pole_merge_linear_radio.onIsCheckedChangedObservable.add(setPoleMergeLinear);
+            pole_merge_linear_panel.addControl(pole_merge_linear_radio);
+            let pole_merge_linear_label = new BABYLON.GUI.TextBlock();
+            pole_merge_linear_label.text = ' Linear';
+            pole_merge_linear_label.width = '200px';
+            pole_merge_linear_label.color = '#000000';
+            pole_merge_linear_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            pole_merge_linear_label.fontSize = '48px';
+            pole_merge_linear_panel.addControl(pole_merge_linear_label);
+            panel.addControl(pole_merge_linear_panel);
+            // pole merge start angle (linear) slider
+            let pole_merge_linear_slider_panel = new BABYLON.GUI.StackPanel();
+            pole_merge_linear_slider_panel.width = '960px';
+            pole_merge_linear_slider_panel.height = '96px';
+            pole_merge_linear_slider_panel.isVertical = false;
+            pole_merge_linear_slider_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            pole_merge_linear_slider_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            let pole_merge_linear_slider = new BABYLON.GUI.Slider();
+            pole_merge_linear_slider.width = '450px';
+            pole_merge_linear_slider.height = '40px';
+            pole_merge_linear_slider.thumbWidth = '30px';
+            pole_merge_linear_slider.value = 0;
+            pole_merge_linear_slider.minimum = 0;
+            pole_merge_linear_slider.maximum = 6;
+            pole_merge_linear_slider.step = 1;
+            pole_merge_linear_slider.onValueChangedObservable.add(selectLinearImage);
+            pole_merge_linear_slider_panel.addControl(pole_merge_linear_slider);
+            pole_merge_linear_slider_label = new BABYLON.GUI.TextBlock();
+            pole_merge_linear_slider_label.text = ' 0';
+            pole_merge_linear_slider_label.width = '200px';
+            pole_merge_linear_slider_label.color = '#000000';
+            pole_merge_linear_slider_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            pole_merge_linear_slider_label.fontSize = '48px';
+            pole_merge_linear_slider_panel.addControl(pole_merge_linear_slider_label);
+            panel.addControl(pole_merge_linear_slider_panel);
+            // pole merge (cubic) radio button
+            let pole_merge_cubic_panel = new BABYLON.GUI.StackPanel();
+            pole_merge_cubic_panel.width = '960px';
+            pole_merge_cubic_panel.height = '96px';
+            pole_merge_cubic_panel.isVertical = false;
+            pole_merge_cubic_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            pole_merge_cubic_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            let pole_merge_cubic_radio = new BABYLON.GUI.RadioButton();
+            pole_merge_cubic_radio.width = '50px';
+            pole_merge_cubic_radio.height = '50px';
+            pole_merge_cubic_radio.isChecked = false;
+            pole_merge_cubic_radio.checkSizeRatio = 0.7;
+            pole_merge_cubic_radio.group = 'pole_merge_type';
+            pole_merge_cubic_radio.color = '#28923D';
+            pole_merge_cubic_radio.onIsCheckedChangedObservable.add(setPoleMergeCubic);
+            pole_merge_cubic_panel.addControl(pole_merge_cubic_radio);
+            let pole_merge_cubic_label = new BABYLON.GUI.TextBlock();
+            pole_merge_cubic_label.text = ' Cubic';
+            pole_merge_cubic_label.width = '200px';
+            pole_merge_cubic_label.color = '#000000';
+            pole_merge_cubic_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            pole_merge_cubic_label.fontSize = '48px';
+            pole_merge_cubic_panel.addControl(pole_merge_cubic_label);
+            panel.addControl(pole_merge_cubic_panel);
+            // pole merge start angle (cubic) slider
+            let pole_merge_cubic_slider_panel = new BABYLON.GUI.StackPanel();
+            pole_merge_cubic_slider_panel.width = '960px';
+            pole_merge_cubic_slider_panel.height = '96px';
+            pole_merge_cubic_slider_panel.isVertical = false;
+            pole_merge_cubic_slider_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            pole_merge_cubic_slider_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            let pole_merge_cubic_slider = new BABYLON.GUI.Slider();
+            pole_merge_cubic_slider.width = '450px';
+            pole_merge_cubic_slider.height = '40px';
+            pole_merge_cubic_slider.thumbWidth = '30px';
+            pole_merge_cubic_slider.value = 0;
+            pole_merge_cubic_slider.minimum = 0;
+            pole_merge_cubic_slider.maximum = 6;
+            pole_merge_cubic_slider.step = 1;
+            pole_merge_cubic_slider.onValueChangedObservable.add(selectCubicImage);
+            pole_merge_cubic_slider_panel.addControl(pole_merge_cubic_slider);
+            pole_merge_cubic_slider_label = new BABYLON.GUI.TextBlock();
+            pole_merge_cubic_slider_label.text = ' 0';
+            pole_merge_cubic_slider_label.width = '200px';
+            pole_merge_cubic_slider_label.color = '#000000';
+            pole_merge_cubic_slider_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            pole_merge_cubic_slider_label.fontSize = '48px';
+            pole_merge_cubic_slider_panel.addControl(pole_merge_cubic_slider_label);
+            panel.addControl(pole_merge_cubic_slider_panel);
+            // buttons (leave VR)
+            let button_panel = new BABYLON.GUI.StackPanel();
+            button_panel.width = '960px';
+            button_panel.height = '96px';
+            button_panel.isVertical = false;
+            button_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            button_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            let leave_vr_button = BABYLON.GUI.Button.CreateSimpleButton('leave_vr', 'Exit VR');
+            leave_vr_button.width = '300px';
+            leave_vr_button.height = '72px';
+            leave_vr_button.color = '#FFFFFF';
+            leave_vr_button.background = '#B81204';
+            leave_vr_button.fontSize = '48px';
+            leave_vr_button.onPointerClickObservable.add(exitVr);
+            button_panel.addControl(leave_vr_button);
+            panel.addControl(button_panel);
+
+
+            // WebXR
+            scene.createDefaultXRExperienceAsync({floorMeshes: [environment.ground]})
+            .then((xr_helper) => {
+                xr_control = xr_helper;
+                xr_control.teleportation.detach();
+
+                startRenderLoop(engine);
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+        }
+
+        function startRenderLoop(engine) {
+            // register a render loop to repeatedly render the scene
+            engine.runRenderLoop(() => {
+                sphere.position = scene.activeCamera.position;
+                gui.position = scene.activeCamera.position.add(new BABYLON.Vector3(-0.7, -0.15, -1.0))
+                gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)).subtract(scene.activeCamera.position));
+                scene.render();
+            });
+
+            // watch for browser/canvas resize events
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+        }
+
+        function setPoleMergeLinear(value) {
+            if (value) {
+                selected_linear = true;
+                domes_cubic[ods_cubic_idx].setEnabled(false);
+                domes_linear[ods_linear_idx].setEnabled(true);
+            }
+        }
+
+        function setPoleMergeCubic(value) {
+            if (value) {
+                selected_linear = false;
+                domes_linear[ods_linear_idx].setEnabled(false);
+                domes_cubic[ods_cubic_idx].setEnabled(true);
+            }
+        }
+
+        function selectLinearImage(value) {
+            let prev_ods_linear_idx = ods_linear_idx;
+            ods_linear_idx = value;
+            pole_merge_linear_slider_label.text = ' ' + (value * 15);
+
+            if (selected_linear) {
+                domes_linear[prev_ods_linear_idx].setEnabled(false);
+                domes_linear[ods_linear_idx].setEnabled(true);
+            }
+        }
+
+        function selectCubicImage(value) {
+            let prev_ods_cubic_idx = ods_cubic_idx;
+            ods_cubic_idx = value;
+            pole_merge_cubic_slider_label.text = ' ' + (value * 15);
+
+            if (!selected_linear) {
+                domes_cubic[prev_ods_cubic_idx].setEnabled(false);
+                domes_cubic[ods_cubic_idx].setEnabled(true);
+            }
+        }
+
+        function exitVr() {
+            xr_control.baseExperience.exitXRAsync().then(() => {
+                // nothing
+            });
+        }
+    </script>
+</head>
+<body onload="init()">
+    <div id="instructions">
+        <h1>Instructions</h1>
+        <p>Click on the VR Headset icon in the bottom-right to enter immersive mode. If this icon is not shown, your device does not support virtual reality for this application.</p>
+        <p><a href="../">Back</a></p>
+    </div>
+    <canvas id="render" touch-action="none"></canvas>
+</body>
+</html>

@@ -10,11 +10,22 @@ html {
 h1 {
     font-size: 1.6rem;
     font-weight: bold;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
 }
 
 p {
     font-size: 1rem;
+    margin-bottom: 0.2rem;
+}
+
+a, a:visited {
+    font-weight: bold;
+    color: #4A6CD9;
+    text-decoration: underline;
+}
+
+a:hover {
+    color: #344C99;
 }
 
 #instructions {
