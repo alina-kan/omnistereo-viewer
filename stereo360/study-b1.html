@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <title>Omnidirectional Stereo Image Viewer</title>
+    <link rel="stylesheet" href="css/style.css"/>
+    <script type="application/javascript" src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script type="application/javascript" src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script type="application/javascript">
+        let xr_control;
+        let scene;
+        let domes = [];
+        let sphere;
+        let gui;
+        let image_label;
+        let stereo_checkbox;
+        let next_img_button;
+        let ods_image_idx = 1;
+        let ods_images = [
+            './images/obj_3d_scene_mono.jpg',
+            './images/obj_3d_scene_traditional.jpg',
+            './images/obj_3d_scene_linear_0-15.jpg'//,
+            //'./images/pointcloud_5M_linear_0-30.jpg',
+            //'./images/pointcloud_5M_linear_0-45.jpg',
+            //'./images/pointcloud_5M_linear_0-60.jpg',
+            //'./images/pointcloud_5M_linear_0-75.jpg',
+            //'./images/pointcloud_5M_linear_0-90.jpg',
+            //'./images/pointcloud_5M_cubic_0-15.jpg',
+            //'./images/pointcloud_5M_cubic_0-30.jpg',
+            //'./images/pointcloud_5M_cubic_0-45.jpg',
+            //'./images/pointcloud_5M_cubic_0-60.jpg',
+            //'./images/pointcloud_5M_cubic_0-75.jpg',
+            //'./images/pointcloud_5M_cubic_0-90.jpg'
+        ];
+
+        function init() {
+            // get the canvas element
+            let canvas = document.getElementById('render');
+            // generate the Babylon 3D engine
+            let engine = new BABYLON.Engine(canvas, true);
+
+            // create scene
+            createScene(canvas, engine);
+        }
+
+        function createScene(canvas, engine) {
+            // creates a basic Babylon Scene object (non-mesh)
+            scene = new BABYLON.Scene(engine);
+
+            // add a camera to the scene and attach it to the canvas
+            let camera = new BABYLON.ArcRotateCamera('camera', -Math.PI / 2,  Math.PI / 2, 0.001, 
+                                                     BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            camera.inputs.attached.mousewheel.detachControl(canvas);
+            camera.znear = 0.1;
+            camera.zfar = 1000.0;
+
+            // add photo domes (equirectangular panoramas)
+            let i;
+            for (i = 0; i < ods_images.length; i++) {
+                let dome = new BABYLON.PhotoDome(
+                    'ods_dome',
+                    ods_images[i],
+                    {
+                        resolution: 32,
+                        size: 500
+                    },
+                    scene
+                );
+                dome.imageMode = BABYLON.PhotoDome.MODE_TOPBOTTOM;
+                if (i != ods_image_idx) {
+                    dome.setEnabled(false);
+                }
+                domes.push(dome);
+            }
+
+            // add invisible sphere for pointer intersection
+            sphere = BABYLON.MeshBuilder.CreateSphere('sphere', {diameter: 4.0, segments: 32}, scene);
+            sphere.position = new BABYLON.Vector3(0.0, 0.0, 0.0);
+            sphere.material = new BABYLON.StandardMaterial('sphereMaterial', scene);
+            sphere.material.backFaceCulling = false;
+            sphere.material.alpha = 0.0;
+
+            // default environment
+            const environment = scene.createDefaultEnvironment();
+
+            // add GUI
+            gui = BABYLON.MeshBuilder.CreatePlane('plane', {width: 0.75, height: 0.261}, scene);
+            gui.position = new BABYLON.Vector3(-0.7, -0.15, -1.0)
+            gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)));
+            let advanced_texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(gui, 1024, 356);
+            let panel = new BABYLON.GUI.StackPanel();
+            panel.width = '1000px';
+            panel.height = '348px';
+            panel.background = 'rgba(255, 255, 255, 0.6)';   
+            advanced_texture.addControl(panel);
+            // header
+            let header = new BABYLON.GUI.TextBlock();
+            header.text = 'ODS Image Controls';
+            header.height = '132px';
+            header.width = '1000px';
+            header.color = '#000000';
+            header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            header.fontSize = '96px';
+            panel.addControl(header);
+            // image label and stereo checkbox
+            let stereo_checkbox_panel = new BABYLON.GUI.StackPanel();
+            stereo_checkbox_panel.width = '960px';
+            stereo_checkbox_panel.height = '96px';
+            stereo_checkbox_panel.isVertical = false;
+            stereo_checkbox_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            stereo_checkbox_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            image_label = new BABYLON.GUI.TextBlock();
+            image_label.text = 'Image ID: ' + ods_image_idx;
+            image_label.width = '750px';
+            image_label.color = '#000000';
+            image_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            image_label.fontSize = '48px';
+            stereo_checkbox_panel.addControl(image_label);
+            stereo_checkbox = new BABYLON.GUI.Checkbox();
+            stereo_checkbox.width = '50px';
+            stereo_checkbox.height = '50px';
+            stereo_checkbox.isChecked = true;
+            stereo_checkbox.checkSizeRatio = 0.7;
+            stereo_checkbox.color = '#28923D';
+            stereo_checkbox.onIsCheckedChangedObservable.add(setStereo);
+            stereo_checkbox_panel.addControl(stereo_checkbox);
+            let stereo_checkbox_label = new BABYLON.GUI.TextBlock();
+            stereo_checkbox_label.text = ' Stereo';
+            stereo_checkbox_label.width = '200px';
+            stereo_checkbox_label.color = '#000000';
+            stereo_checkbox_label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            stereo_checkbox_label.fontSize = '48px';
+            stereo_checkbox_panel.addControl(stereo_checkbox_label);
+            panel.addControl(stereo_checkbox_panel);
+            // buttons (next image and leave VR)
+            let button_panel = new BABYLON.GUI.StackPanel();
+            button_panel.width = '960px';
+            button_panel.height = '96px';
+            button_panel.isVertical = false;
+            button_panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+            button_panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+            next_img_button = BABYLON.GUI.Button.CreateSimpleButton('next_img', 'Next Image');
+            next_img_button.width = '300px';
+            next_img_button.height = '72px';
+            next_img_button.color = '#FFFFFF';
+            next_img_button.background = '#4A6CD9';
+            next_img_button.fontSize = '48px';
+            next_img_button.onPointerClickObservable.add(nextImage);
+            let button_spacing = new BABYLON.GUI.TextBlock();
+            button_spacing.text = '';
+            button_spacing.width = '35px';
+            button_spacing.color = '#000000';
+            button_spacing.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            button_spacing.fontSize = '48px';
+            let leave_vr_button = BABYLON.GUI.Button.CreateSimpleButton('leave_vr', 'Exit VR');
+            leave_vr_button.width = '300px';
+            leave_vr_button.height = '72px';
+            leave_vr_button.color = '#FFFFFF';
+            leave_vr_button.background = '#B81204';
+            leave_vr_button.fontSize = '48px';
+            leave_vr_button.onPointerClickObservable.add(exitVr);
+            button_panel.addControl(next_img_button);
+            button_panel.addControl(button_spacing);
+            button_panel.addControl(leave_vr_button);
+            panel.addControl(button_panel);
+
+
+            // WebXR
+            scene.createDefaultXRExperienceAsync({floorMeshes: [environment.ground]})
+            .then((xr_helper) => {
+                xr_control = xr_helper;
+                xr_control.teleportation.detach();
+
+                startRenderLoop(engine);
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+        }
+
+        function startRenderLoop(engine) {
+            // register a render loop to repeatedly render the scene
+            engine.runRenderLoop(() => {
+                sphere.position = scene.activeCamera.position;
+                gui.position = scene.activeCamera.position.add(new BABYLON.Vector3(-0.7, -0.15, -1.0))
+                gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)).subtract(scene.activeCamera.position));
+                scene.render();
+            });
+
+            // watch for browser/canvas resize events
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+        }
+
+        function setStereo(value) {
+            let prev_idx = value ? 0 : ods_image_idx;
+            let idx = value ? ods_image_idx : 0;
+
+            domes[prev_idx].setEnabled(false);
+            domes[idx].setEnabled(true);
+        }
+
+        function nextImage() {
+            stereo_checkbox.isChecked = true;
+            domes[0].setEnabled(false);
+            domes[ods_image_idx].setEnabled(false);
+
+            ods_image_idx++;
+            image_label.text = 'Image ID: ' + ods_image_idx;
+
+            domes[ods_image_idx].setEnabled(true);
+
+            if ((ods_image_idx + 1) >= ods_images.length) {
+                next_img_button.isEnabled = false;
+                next_img_button.background = '#666666';
+            }
+        }
+
+        function exitVr() {
+            xr_control.baseExperience.exitXRAsync().then(() => {
+                // nothing
+            });
+        }
+    </script>
+</head>
+<body onload="init()">
+    <div id="instructions">
+        <h1>Instructions</h1>
+        <p>Click on the VR Headset icon in the bottom-right to enter immersive mode. If this icon is not shown, your device does not support virtual reality for this application.</p>
+        <p><a href="../">Back</a></p>
+    </div>
+    <canvas id="render" touch-action="none"></canvas>
+</body>
+</html>
