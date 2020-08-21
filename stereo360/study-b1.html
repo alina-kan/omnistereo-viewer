@@ -89,7 +89,7 @@
 
             // add GUI
             gui = BABYLON.MeshBuilder.CreatePlane('plane', {width: 0.75, height: 0.261}, scene);
-            gui.position = new BABYLON.Vector3(-0.7, -0.15, -1.0)
+            gui.position = new BABYLON.Vector3(0.7, -0.15, 1.0)
             gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)));
             let advanced_texture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(gui, 1024, 356);
             let panel = new BABYLON.GUI.StackPanel();
@@ -186,7 +186,7 @@
             // register a render loop to repeatedly render the scene
             engine.runRenderLoop(() => {
                 sphere.position = scene.activeCamera.position;
-                gui.position = scene.activeCamera.position.add(new BABYLON.Vector3(-0.7, -0.15, -1.0))
+                gui.position = scene.activeCamera.position.add(new BABYLON.Vector3(0.7, -0.15, 1.0))
                 gui.lookAt(gui.position.multiply(new BABYLON.Vector3(2, 2, 2)).subtract(scene.activeCamera.position));
                 scene.render();
             });
