@@ -239,11 +239,12 @@
             button_panel.addControl(leave_vr_button);
             panel.addControl(button_panel);
 
+            /*
             //controller connection
             var vrHelper = scene.createDefaultVRExperienceAsync();
             const leftHand = BABYLON.Mesh.CreateBox("leftHand",0.1, scene);
             leftHand.scaling.z = 2;
-            leftHand.isVisible =false;
+            leftHand.isVisible =false; */
 
             // WebXR
             scene.createDefaultXRExperienceAsync({floorMeshes: [environment.ground]})
@@ -272,7 +273,7 @@
                 engine.resize();
             });
         }
-
+        /*
         function hideShowGui(gui){
             webVRController.onMainButtonStateChangedObservable.add((stateObject) => {
                 if(webVRController.hand ==='left'){
@@ -287,7 +288,7 @@
                     }
                 }
             });
-        }
+        } */
 
         function setPoleMergeLinear(value) {
             if (value) {
