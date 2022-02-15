@@ -10,7 +10,7 @@
     <script type="application/javascript" src="https://cdn.babylonjs.com/babylon.js"></script>
     <script type="application/javascript" src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
     <script type="application/javascript">
-        let xr_control;
+        let xr_control; 
         let scene;
         let domes_linear = [];
         let domes_cubic = [];
@@ -239,6 +239,11 @@
             button_panel.addControl(leave_vr_button);
             panel.addControl(button_panel);
 
+            //controller connection
+            var vrHelper = scene.createDefaultVRExperienceAsync();
+            const leftHand = BABYLON.Mesh.CreateBox("leftHand",0.1, scene);
+            leftHand.scaling.z = 2;
+            leftHand.isVisible =false;
 
             // WebXR
             scene.createDefaultXRExperienceAsync({floorMeshes: [environment.ground]})
@@ -265,6 +270,22 @@
             // watch for browser/canvas resize events
             window.addEventListener('resize', () => {
                 engine.resize();
+            });
+        }
+
+        function hideShowGui(gui){
+            webVRController.onMainButtonStateChangedObservable.add((stateObject) => {
+                if(webVRController.hand ==='left'){
+                    if(stateObject.pressed === true){
+                        if(gui.isVisible() == false){    
+                            //if already hidden, then show                           
+                            gui.isVisible() = true;
+                        }else{
+                            //hide
+                            gui.isVisible() = false;
+                        }               
+                    }
+                }
             });
         }
 
@@ -306,11 +327,12 @@
             }
         }
 
+
         function exitVr() {
             xr_control.baseExperience.exitXRAsync().then(() => {
                 // nothing
             });
-        }
+        } 
     </script>
 </head>
 <body onload="init()">
