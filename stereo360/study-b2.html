@@ -241,7 +241,7 @@
 
             //controller connection
             var vrHelper = scene.createDefaultVRExperienceAsync();
-            const leftHand = BABYLON.Mesh.CreateBox("leftHand",0.1, scene);
+            const leftHand = BABYLON.MeshBuilder.CreateBox("leftHand",0.1, scene);
             leftHand.scaling.z = 2;
             leftHand.isVisible =false;
 
