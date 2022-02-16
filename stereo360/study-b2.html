@@ -269,15 +269,29 @@
 
         const buttonComponent = motionController.getComponentOfType("button");
         
+
         function hideShowGui(gui){
-            buttonComponent.onButtonStateChangedObservable.add(() => {
-                if (buttonComponent.pressed){
-                    if (gui.isVisible() == false){
+            xr.input.onControllerAddedObservable.add((controller) => {
+        controller.onMotionControllerInitObservable.add((motionController) => {
+           if (motionController.handness === 'left') {
+                const xr_ids = motionController.getComponentIds();
+                let xbuttonComponent = motionController.getComponent(xr_ids[3]);//x-button
+                xbuttonComponent.onButtonStateChangedObservable.add(() => {
+                    if (xbuttonComponent.pressed) {
+                        if (gui.isVisible() == false){
                         gui.isVisible() = true;
+                        }
+                        gui.isVisible() = false;
+                    }else{
+                        Sphere_Left_XButton.scaling=new BABYLON.Vector3(1,1,1);  
                     }
-                    gui.isVisible() = false;
-                }
-            });
+                });
+            }
+        });
+        });
+        }
+
+            
             /*
             webVRController.onMainButtonStateChangedObservable.add((stateObject) => {
                 if(webVRController.hand ==='left'){
@@ -292,7 +306,7 @@
                     }
                 }
             }); */
-        } 
+        
 
         function setPoleMergeLinear(value) {
             if (value) {
