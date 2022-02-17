@@ -275,14 +275,14 @@
                 let xbuttonComponent = motionController.getComponent(xr_ids[3]);//x-button
                 xbuttonComponent.onButtonStateChangedObservable.add(() => {
                     if (xbuttonComponent.pressed) {
-                        if (gui.style.visibility="hidden"){
+                        if (gui.isVisible == false){
                             //if hidden, show
                             // or: gui.setEnabled(true);
-                            gui.style.visibility="visible";
+                            gui.isVisible = true;
                         }
                         //else, hide
                         // or: gui.setEnabled(false);
-                        gui.style.visibility="hidden";
+                        gui.isVisible = false;
                     }
                     //do nothing if not pressed
                 });
