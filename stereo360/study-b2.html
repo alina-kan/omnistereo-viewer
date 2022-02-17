@@ -265,48 +265,46 @@
             window.addEventListener('resize', () => {
                 engine.resize();
             });
-        }
-
-        const buttonComponent = motionController.getComponentOfType("button");
-        
+        }        
 
         function hideShowGui(gui){
             xr.input.onControllerAddedObservable.add((controller) => {
-        controller.onMotionControllerInitObservable.add((motionController) => {
-           if (motionController.handness === 'left') {
+            controller.onMotionControllerInitObservable.add((motionController) => {
+            if (motionController.handness === 'left') {
                 const xr_ids = motionController.getComponentIds();
                 let xbuttonComponent = motionController.getComponent(xr_ids[3]);//x-button
                 xbuttonComponent.onButtonStateChangedObservable.add(() => {
                     if (xbuttonComponent.pressed) {
-                        if (gui.isVisible() == false){
-                        gui.isVisible() = true;
+                        if (gui.style.visibility="hidden"){
+                            //if hidden, show
+                            // or: gui.setEnabled(true);
+                            gui.style.visibility="visible";
                         }
-                        gui.isVisible() = false;
-                    }else{
-                        Sphere_Left_XButton.scaling=new BABYLON.Vector3(1,1,1);  
+                        //else, hide
+                        // or: gui.setEnabled(false);
+                        gui.style.visibility="hidden";
                     }
+                    //do nothing if not pressed
                 });
             }
         });
         });
         }
-
-            
             /*
             webVRController.onMainButtonStateChangedObservable.add((stateObject) => {
                 if(webVRController.hand ==='left'){
                     if(stateObject.pressed === true){
-                        if(gui.isVisible() == false){    
+                        if(gui.isVisible == false){    
                             //if already hidden, then show                           
-                            gui.isVisible() = true;
+                            gui.isVisible = true;
                         }else{
                             //hide
-                            gui.isVisible() = false;
+                            gui.isVisible = false;
                         }               
                     }
                 }
             }); */
-        
+         
 
         function setPoleMergeLinear(value) {
             if (value) {
