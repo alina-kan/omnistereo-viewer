@@ -38,7 +38,10 @@
             './images/obj_3d_scene_cubic_0-60.jpg',
             './images/obj_3d_scene_cubic_0-75.jpg',
             './images/obj_3d_scene_cubic_0-90.jpg'
-        ]
+        ];
+        var Sphere_Left_XButton = BABYLON.MeshBuilder.CreateSphere("Sphere_Left_XButton", {diameter:1}, scene);
+        Sphere_Left_XButton.position = new BABYLON.Vector3(-2,0,2);
+        //Sphere_left_XButton.isVisible = false;
 
         function init() {
             // get the canvas element
@@ -250,7 +253,27 @@
             .catch((err) => {
                 console.log(err);
             });
+
+            xr.input.onControllerAddedObservable.add((controller) => {
+            controller.onMotionControllerInitObservable.add((motionController) => {
+            if (motionController.handness === 'left') {
+                const xr_ids = motionController.getComponentIds();
+                let xbuttonComponent = motionController.getComponent(xr_ids[3]);//x-button
+                xbuttonComponent.onButtonStateChangedObservable.add(() => {
+                    if (xbuttonComponent.pressed) {
+                        Sphere_Left_XButton.scaling= new BABYLON.Vector3(1.2,1.2,1.2);
+                        gui.isVisible = false;
+                    }else{
+                        Sphere_Left_XButton.scaling=new BABYLON.Vector3(1,1,1);
+                        gui.isVisible = true;  
+                    }
+                });
+            }
+            });
+            
+            });
         }
+        
 
         function startRenderLoop(engine) {
             // register a render loop to repeatedly render the scene
@@ -267,6 +290,7 @@
             });
         }        
 
+        /*
         function hideShowGui(gui){
             xr.input.onControllerAddedObservable.add((controller) => {
             controller.onMotionControllerInitObservable.add((motionController) => {
@@ -290,7 +314,7 @@
         });
         });
         }
-            /*
+            
             webVRController.onMainButtonStateChangedObservable.add((stateObject) => {
                 if(webVRController.hand ==='left'){
                     if(stateObject.pressed === true){
