@@ -261,7 +261,7 @@
                 let xbuttonComponent = motionController.getComponent(xr_ids[3]);//x-button
                 xbuttonComponent.onButtonStateChangedObservable.add(() => {
                     if (xbuttonComponent.pressed) {
-                        Sphere_Left_XButton.scaling= new BABYLON.Vector3(1.2,1.2,1.2);
+                        Sphere_Left_XButton.scaling= new BABYLON.Vector3(20,20,20);
                         gui.isVisible = false;
                     }else{
                         Sphere_Left_XButton.scaling=new BABYLON.Vector3(1,1,1);
